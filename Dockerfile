@@ -101,7 +101,7 @@ COPY config/ /opt/yodyod/config/
 COPY runtime/ /opt/yodyod/runtime/
 COPY scripts/ /opt/yodyod/scripts/
 RUN chmod 0755 /opt/yodyod/runtime/*.sh /opt/yodyod/scripts/*.sh \
-    && ln -s /opt/yodyod/runtime/browser.sh /usr/local/bin/yodyod-browser \
+    && ln -s /opt/yodyod/runtime/open-browser.sh /usr/local/bin/yodyod-browser \
     && node --check /opt/yodyod/tools/tools/desktop-mcp.mjs \
     && python3 -m compileall -q /opt/yodyod/runtime
 

@@ -82,6 +82,11 @@ const url = `http://127.0.0.1:${fixture.address().port}`;
 
 try {
   await checkAppServer();
+  // Desktop health does not require a browser window to remain open.
+  for (let attempt = 0; attempt < 60; attempt++) {
+    if (await fetch('http://127.0.0.1:9222/json/version').then(r => r.ok).catch(() => false)) break;
+    await delay(1000);
+  }
   const browser = await connect('/usr/local/bin/node', [
     '/opt/yodyod/tools/node_modules/@playwright/mcp/cli.js',
     '--cdp-endpoint', 'http://127.0.0.1:9222', '--caps', 'vision',

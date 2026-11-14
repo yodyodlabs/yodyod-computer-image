@@ -6,7 +6,12 @@ mkdir -p "$profile"
 chrome_pid=""
 shutdown() {
   trap - TERM INT
-  if [[ -n "$chrome_pid" ]]; then
+  # The user may have closed the boot window and reopened Chrome through XFCE.
+  # That process belongs to the launcher, so read the current profile owner.
+  local owner
+  owner="$(readlink "$profile/SingletonLock" 2>/dev/null || true)"
+  if [[ "${owner##*-}" =~ ^[0-9]+$ ]]; then chrome_pid="${owner##*-}"; fi
+  if curl -fsS --max-time 2 http://127.0.0.1:9222/json/version >/dev/null 2>&1; then
     # Browser.close flushes the durable profile. SIGTERM can skip pending cookie
     # writes; a group-wide signal must not kill Chrome before this step.
     timeout 10s node --input-type=module <<'JS' || true
@@ -20,6 +25,8 @@ await new Promise((resolve, reject) => {
   socket.addEventListener('error', () => { clearTimeout(timer); reject(new Error('Browser.close failed')); });
 });
 JS
+  fi
+  if [[ -n "$chrome_pid" ]]; then
     for ((attempt=0; attempt<50; attempt++)); do
       if ! kill -0 "$chrome_pid" 2>/dev/null; then break; fi
       sleep 0.1
@@ -40,17 +47,13 @@ xdpyinfo >/dev/null 2>&1 || { echo 'X desktop did not become ready.' >&2; exit 1
 if ! curl -fsS --max-time 2 http://127.0.0.1:9222/json/version >/dev/null; then
   rm -f "$profile/SingletonLock" "$profile/SingletonCookie" "$profile/SingletonSocket"
 fi
-# Chrome runs as root inside an isolated Agent37 instance; disable its sandbox.
-# DevTools is loopback-only; never configure 9222 as a public port.
+# Open once at boot. Closing the browser is a user action, not a service crash.
+# Stay available for orderly profile shutdown without reopening any windows.
+/opt/yodyod/runtime/open-browser.sh &
+chrome_pid=$!
+wait "$chrome_pid" || true
+chrome_pid=""
 while true; do
-  google-chrome-stable \
-    --no-sandbox --disable-dev-shm-usage --no-first-run --no-default-browser-check \
-    --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
-    --user-data-dir="$profile" --password-store=basic --start-maximized \
-    about:blank &
-  chrome_pid=$!
-  wait "$chrome_pid" || true
-  chrome_pid=""
-  sleep 2 &
+  sleep 86400 &
   wait "$!" || true
 done

@@ -31,6 +31,8 @@ class BootstrapTests(unittest.TestCase):
         original = path.read_bytes()
         self.assertEqual(len(tomllib.loads(original.decode())["mcp_servers"]), 3)
         self.assertTrue((self.home / "workspace").is_dir())
+        self.assertIn('WebBrowser=yodyod-chrome', (self.home / '.config/xfce4/helpers.rc').read_text())
+        self.assertIn('/usr/local/bin/yodyod-browser', (self.home / '.local/share/applications/yodyod-chrome.desktop').read_text())
         self.assertEqual(tomllib.loads(original.decode())["sandbox_mode"], "danger-full-access")
         self.assertEqual(tomllib.loads(original.decode())["approval_policy"], "never")
         self.seed()
@@ -42,6 +44,9 @@ class BootstrapTests(unittest.TestCase):
         original = 'model = "user-model"\nsandbox_mode = "read-only"\napproval_policy = "on-request"\n[mcp_servers.yodyod_browser]\ncommand = "custom-browser"\n'
         (folder / "config.toml").write_text(original)
         (self.home / "AGENTS.md").write_text("My own instructions\n")
+        helpers = self.home / '.config/xfce4/helpers.rc'
+        helpers.parent.mkdir(parents=True)
+        helpers.write_text('TerminalEmulator=custom-terminal\nWebBrowser=firefox\n')
         self.seed()
         parsed = tomllib.loads((folder / "config.toml").read_text())
         self.assertEqual(parsed["model"], "user-model")
@@ -49,6 +54,8 @@ class BootstrapTests(unittest.TestCase):
         self.assertEqual(parsed["approval_policy"], "on-request")
         self.assertEqual(parsed["mcp_servers"]["yodyod_browser"]["command"], "custom-browser")
         self.assertEqual((self.home / "AGENTS.md").read_text(), "My own instructions\n")
+        self.assertIn('TerminalEmulator=custom-terminal', helpers.read_text())
+        self.assertNotIn('WebBrowser=firefox', helpers.read_text())
 
     def test_invalid_config_is_left_intact(self):
         folder = self.home / ".codex"

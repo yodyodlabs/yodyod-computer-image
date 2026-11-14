@@ -2,6 +2,7 @@
 """Seed persistent-home defaults without replacing user configuration."""
 
 import os
+import configparser
 import re
 import tomllib
 from pathlib import Path
@@ -9,6 +10,32 @@ from pathlib import Path
 
 def bootstrap(home: Path, config_dir: Path) -> None:
     (home / "workspace").mkdir(parents=True, exist_ok=True)
+    # XFCE's panel uses exo's WebBrowser helper, while links use XDG MIME
+    # associations. Both must use the root-compatible shared-profile launcher.
+    for destination, source in (
+        (home / ".local/share/applications/yodyod-chrome.desktop", "yodyod-chrome.desktop"),
+        (home / ".local/share/xfce4/helpers/yodyod-chrome.desktop", "yodyod-chrome-helper.desktop"),
+        (home / "Desktop/yodyod-chrome.desktop", "yodyod-chrome.desktop"),
+    ):
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text((config_dir / source).read_text())
+        destination.chmod(0o755)
+    helpers = home / ".config/xfce4/helpers.rc"
+    helpers.parent.mkdir(parents=True, exist_ok=True)
+    lines = helpers.read_text().splitlines() if helpers.exists() else []
+    lines = [line for line in lines if not re.match(r"^\s*WebBrowser\s*=", line)]
+    helpers.write_text("\n".join(lines + ["WebBrowser=yodyod-chrome"]) + "\n")
+    mime_path = home / ".config/mimeapps.list"
+    mime = configparser.ConfigParser(interpolation=None, strict=False)
+    mime.optionxform = str
+    if mime_path.exists():
+        mime.read(mime_path)
+    if not mime.has_section("Default Applications"):
+        mime.add_section("Default Applications")
+    for kind in ("text/html", "application/xhtml+xml", "x-scheme-handler/http", "x-scheme-handler/https"):
+        mime.set("Default Applications", kind, "yodyod-chrome.desktop")
+    with mime_path.open("w") as output:
+        mime.write(output, space_around_delimiters=False)
     codex_home = Path(os.environ.get("CODEX_HOME", str(home / ".codex")))
     codex_home.mkdir(parents=True, exist_ok=True)
     config = codex_home / "config.toml"

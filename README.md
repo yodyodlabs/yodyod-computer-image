@@ -24,6 +24,8 @@
 
 浏览器自动化使用的是桌面里的同一个 Chrome，而非另一台云浏览器。用户可以在 noVNC 里观看和接管。Browser Use 的本地 MCP 由 Codex 自己调用，不需要额外购买 Browser Use Cloud；如果从 Python 代码运行 Browser Use 的独立 `Agent`，仍需为那个 agent 配置模型。
 
+Chrome 在电脑启动时打开一次，手动关闭后保持关闭。XFCE 下方的浏览器快捷图标、桌面「网页浏览器」及 HTTP/HTTPS 链接都通过 `yodyod-browser` 打开同一持久 Chrome 配置；关闭浏览器不影响桌面健康。使用浏览器 MCP 前，先从快捷图标或终端 `yodyod-browser` 打开 Chrome。
+
 该镜像不包含模型密钥、GitHub 凭据或任何人的登录数据。Codex 模型费用使用实例自己的 OpenAI 账户或 API Key。
 
 ## 发布到 GHCR

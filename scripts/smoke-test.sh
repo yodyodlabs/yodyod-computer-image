@@ -49,4 +49,5 @@ docker restart --time 20 "$name" >/dev/null
 wait_ready
 test "$(docker exec "$name" cat /root/workspace/.yodyod-smoke)" = persistent
 docker exec "$name" node /opt/yodyod/tools/tests/smoke.mjs --after-restart
+docker exec "$name" node /opt/yodyod/tools/tests/browser-lifecycle.mjs
 echo 'PASS image smoke tests, including persistent-home and Chrome-profile restart'
