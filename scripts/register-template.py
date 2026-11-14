@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 
@@ -44,7 +45,7 @@ def main():
         if match.get("image_ref") == args.image:
             result = match
         else:
-            result = request("PATCH", "/v1/templates/" + match["id"], payload)
+            result = request("PATCH", "/v1/templates/" + urllib.parse.quote(match["name"], safe=""), payload)
     else:
         result = request("POST", "/v1/templates", {"name": args.name, **payload})
     # Print only non-secret result fields.
