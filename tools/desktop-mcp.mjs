@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
@@ -45,6 +46,24 @@ export function createServer() {
   };
   register('desktop_get_screen_size', 'Get current desktop dimensions in screenshot pixels.', {},
     async () => text(await screenSize()), readOnly);
+  register('desktop_list_windows', 'List visible X11 windows with their IDs and titles so you can select the keyboard target.', {}, async () => {
+    const { stdout } = await run('xdotool', ['search', '--onlyvisible', '--name', '.']);
+    const windows = await Promise.all(stdout.trim().split(/\s+/).filter(Boolean).map(async id => {
+      try {
+        const { stdout: name } = await run('xdotool', ['getwindowname', id]);
+        return { id, title: name.trim() };
+      } catch { return null; } // A window can close while being enumerated.
+    }));
+    return text(windows.filter(Boolean));
+  }, readOnly);
+  register('desktop_focus_window', 'Activate a visible window by an ID returned by desktop_list_windows before typing.', {
+    window_id: z.string().regex(/^[0-9]+$/),
+  }, async ({ window_id }) => {
+    await run('xdotool', ['windowactivate', '--sync', window_id]);
+    const { stdout } = await run('xdotool', ['getactivewindow']);
+    if (stdout.trim() !== window_id) throw new Error('Window manager did not activate the requested window.');
+    return text({ activeWindow: window_id });
+  });
   register('desktop_screenshot', 'Capture the entire visible desktop. Coordinates use the original image pixels.', {}, async () => {
     const directory = await mkdtemp(join(tmpdir(), 'yodyod-screen-'));
     try {
@@ -103,6 +122,7 @@ export function createServer() {
       child.stdin.end(value);
     });
     await run('xdotool', ['key', '--clearmodifiers', 'ctrl+v']);
+    await delay(150); // Clipboard delivery is asynchronous in X11 applications.
     return text({ pastedCharacters: [...value].length });
   });
   register('desktop_scroll', 'Scroll at the current mouse position.', {

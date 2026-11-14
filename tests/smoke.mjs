@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createInterface } from 'node:readline';
 import { once } from 'node:events';
+import { setTimeout as delay } from 'node:timers/promises';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
@@ -89,10 +90,20 @@ try {
   const png = shot.content.find(c => c.type === 'image');
   assert.ok(png);
   assert.equal(Buffer.from(png.data, 'base64').subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  const windows = JSON.parse(contents(await call(desktop, 'desktop_list_windows')));
+  const chrome = windows.find(window => window.title.includes('YodYod smoke fixture'));
+  assert.ok(chrome, `Visible Chrome window not found: ${JSON.stringify(windows)}`);
+  await call(desktop, 'desktop_focus_window', { window_id: chrome.id });
+  await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").focus()' });
   await call(desktop, 'desktop_move', { x: 20, y: 20 });
   await call(desktop, 'desktop_key', { key: 'ctrl+a' });
   await call(desktop, 'desktop_type', { text: '你好 YodYod ✓' });
-  const value = await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").value' });
+  let value;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    value = await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").value' });
+    if (contents(value).includes('你好 YodYod ✓')) break;
+    await delay(100);
+  }
   assert.match(contents(value), /你好 YodYod ✓/);
   console.log('PASS desktop screenshot, mouse, keyboard and Unicode paste');
 

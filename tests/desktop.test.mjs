@@ -14,7 +14,7 @@ test('desktop server exposes its tools and rejects unsafe input over real MCP', 
   try {
     await client.connect(transport);
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 8);
+    assert.equal(tools.length, 10);
     assert.equal(tools.find(t => t.name === 'desktop_screenshot').annotations.readOnlyHint, true);
     const invalid = await client.callTool({ name: 'desktop_key', arguments: { key: '--clearmodifiers;echo bad' } });
     assert.equal(invalid.isError, true);

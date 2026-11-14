@@ -20,7 +20,7 @@
 | 聊天网关 | Agent37 官方 gateway v0.18.1；固定源码 commit，默认 agent 为 Codex |
 | Browser Use | Python `browser-use==1.0.4`，依赖锁定在 `browser-use/uv.lock` |
 | 网页 MCP | Playwright MCP 0.0.85 + Browser Use MCP，均连接同一个可见 Chrome |
-| 桌面 MCP | 自带截图、屏幕尺寸、移动、点击、拖动、组合键、Unicode 输入、滚动工具 |
+| 桌面 MCP | 自带截图、屏幕尺寸、窗口列表/激活、移动、点击、拖动、组合键、Unicode 输入、滚动工具 |
 
 浏览器自动化使用的是桌面里的同一个 Chrome，而非另一台云浏览器。用户可以在 noVNC 里观看和接管。Browser Use 的本地 MCP 由 Codex 自己调用，不需要额外购买 Browser Use Cloud；如果从 Python 代码运行 Browser Use 的独立 `Agent`，仍需为那个 agent 配置模型。
 
@@ -151,7 +151,7 @@ print(page_info())
 PY
 ```
 
-桌面控制工具名：`desktop_screenshot`、`desktop_get_screen_size`、`desktop_move`、`desktop_click`、`desktop_drag`、`desktop_key`、`desktop_type`、`desktop_scroll`。坐标使用原始截图像素；中文和 Unicode 输入通过 clipboard 粘贴。
+桌面控制工具名：`desktop_screenshot`、`desktop_get_screen_size`、`desktop_list_windows`、`desktop_focus_window`、`desktop_move`、`desktop_click`、`desktop_drag`、`desktop_key`、`desktop_type`、`desktop_scroll`。坐标使用原始截图像素；中文和 Unicode 输入通过 clipboard 粘贴。输入前先激活目标窗口，网页 DOM 焦点不能代替桌面键盘焦点。
 
 浏览器和桌面工具应串行调用。应用的“用户接管”按钮还需要在应用层取消或暂停当前 agent 回合；镜像不会自动知道用户何时点击了前端按钮。
 
