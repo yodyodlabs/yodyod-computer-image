@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import an already-published image into Agent37; never creates a VM."""
+"""Import an already-published image into Agent37; never creates an instance."""
 
 import argparse
 import json

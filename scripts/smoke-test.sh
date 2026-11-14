@@ -20,7 +20,7 @@ cleanup() {
 }
 trap cleanup EXIT
 docker volume create "$volume" >/dev/null
-docker run --detach --privileged --name "$name" --shm-size=1g \
+docker run --detach --name "$name" --shm-size=1g \
   --mount "type=volume,source=$volume,target=/root,volume-nocopy" "$image" >/dev/null
 
 wait_ready() {

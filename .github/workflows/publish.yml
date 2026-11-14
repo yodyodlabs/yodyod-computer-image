@@ -78,7 +78,7 @@ jobs:
             echo "\`$digest\`"
             echo
             echo 'Desktop, shared Chrome, all three MCP servers, Codex app-server handshake,'
-            echo 'nested Docker, Unicode input and restart persistence passed without model credentials.'
+            echo 'Unicode input and restart persistence passed without model credentials.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Retain failed desktop screenshot
         if: failure()

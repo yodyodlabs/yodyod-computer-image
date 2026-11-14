@@ -9,11 +9,11 @@ for ((attempt=0; attempt<120; attempt++)); do
 done
 xdpyinfo >/dev/null 2>&1 || { echo 'X desktop did not become ready.' >&2; exit 1; }
 
-# A stopped VM may leave Chromium locks, but never remove a live browser's lock.
+# A stopped instance may leave Chromium locks; never remove a live browser's lock.
 if ! curl -fsS --max-time 2 http://127.0.0.1:9222/json/version >/dev/null; then
   rm -f "$profile/SingletonLock" "$profile/SingletonCookie" "$profile/SingletonSocket"
 fi
-# Chrome runs as root inside an isolated Agent37 VM; its sandbox needs disabling.
+# Chrome runs as root inside an isolated Agent37 instance; disable its sandbox.
 # DevTools is loopback-only; never configure 9222 as a public port.
 while true; do
   google-chrome-stable \

@@ -1,18 +1,18 @@
 # YodYod Computer Image
 
-为 Agent37 VM 构建的 Ubuntu 远程电脑镜像：保留官方 XFCE、Firefox、noVNC 和 Docker，增加 Codex、共享的可见 Chrome、Browser Use 和桌面操作工具。
+为 Agent37 Standard 构建的 Ubuntu 远程电脑镜像：保留官方 XFCE、Firefox 和 noVNC，增加 Codex、共享的可见 Chrome、Browser Use 和桌面操作工具。
 
 - GitHub：`yodyodlabs/yodyod-computer-image`
 - GHCR：`ghcr.io/yodyodlabs/yodyod-computer-image`
 - Agent37 工作区模板名建议：`yodyod-computer`
-- 运行架构：`linux/amd64`；Agent37 实例类型必须为 `vm`。
+- 运行架构：`linux/amd64`；默认实例类型为 Standard（API `default`）；也支持 `vm`。
 
 ## 已安装内容
 
 | 部分 | 内容 |
 | --- | --- |
 | 基础系统 | 官方 `agent37-platform/ubuntu:2026.10.13c`，固定 digest；Ubuntu 26.04 |
-| 桌面 | 官方 XFCE、TigerVNC、noVNC、Firefox；额外安装中文字体 |
+| 桌面 | XFCE、TigerVNC、noVNC、Firefox；额外安装中文字体；独立于 Docker daemon 启动 |
 | 浏览器 | Google Chrome stable，运行在桌面 `DISPLAY=:1` |
 | 代码环境 | Node.js 24.22.3、npm、pnpm 10.22.0、Python 3.12.12、uv 0.13.5、git、编译工具 |
 | 常用工具 | jq、ripgrep、rsync、zip/unzip、curl、wget、ffmpeg、SSH client、vim、nano |
@@ -31,7 +31,7 @@
 推送到 `main` 后，GitHub Actions 会：
 
 1. 在原生 amd64 的 Ubuntu runner 上构建镜像。
-2. 启动带独立持久 home 的测试容器，测试真实桌面、浏览器、嵌套 Docker、三个 MCP 和 Codex app-server。
+2. 启动带独立持久 home 的测试容器，测试真实桌面、浏览器、三个 MCP 和 Codex app-server。
 3. 重启容器，验证文件和 Chrome cookie 保留。
 4. 只有全部通过才向 GHCR 推送镜像。
 
@@ -82,9 +82,9 @@ COPYFILE_DISABLE=1 npx agent37 templates build . \
 
 `COPYFILE_DISABLE=1` 避免 macOS 打包时附带 `._*` AppleDouble 文件；这些元数据也已加入忽略规则。上传前检查 `.dockerignore`，不要把密钥或登录配置放进构建上下文。重复构建会增加模板 revision，已有实例需要显式更新才使用新镜像。
 
-### 真实 VM 验证
+### 真实实例验证
 
-Actions 中的 smoke test 在带权限的 Docker 容器中运行，不能代替 Agent37 VM 验证。模板注册成功或控制台显示 `running` 后，还需检查实例启动日志中的 `health.running`、实际执行 `/opt/yodyod/runtime/healthcheck.sh`，并确认桌面端口可访问。可通过 Agent37 exec 运行以下测试，不需要模型密钥或付费模型调用：
+Actions 中的 smoke test 在普通 Docker 容器中运行，不能代替 Agent37 Standard/gVisor 的真实实例验证。模板注册成功或控制台显示 `running` 后，还需检查实例启动日志中的 `health.running`、实际执行 `/opt/yodyod/runtime/healthcheck.sh`，并确认桌面端口可访问。可通过 Agent37 exec 运行以下测试，不需要模型密钥或付费模型调用：
 
 ```bash
 /opt/yodyod/runtime/healthcheck.sh
@@ -97,6 +97,10 @@ node /opt/yodyod/tools/tests/smoke.mjs
 
 ## 创建实例和接入 YodYod
 
+Standard 在 API 中写作 `type: "default"`，仅支持 `us`，适用于桌面、Codex、浏览器和普通代码任务。VM 的计算费率为 Standard 的 2.5 倍；需要嵌套 Docker/Kubernetes 时才选 `vm`，并设置实例环境变量 `YODYOD_ENABLE_DOCKER=1`，启用官方 Docker 运行时。Standard 不支持 Docker daemon。
+
+实例启用自动休眠，空闲阈值为 300 秒。Agent37 按实例 URL 的流量判定空闲，持续传输数据的桌面或终端连接可能推迟休眠。已有实例不能原地修改类型；从 VM 转为 Standard 需要新建实例并迁移持久数据，随后停止旧 VM。
+
 注册后可创建测试实例，例如：
 
 ```bash
@@ -105,11 +109,12 @@ curl -X POST https://api.agent37.com/v1/instances \
   -H 'Content-Type: application/json' \
   -d '{
     "template": "yodyod-computer@1",
-    "type": "vm",
+    "type": "default",
     "region": "us",
     "resources": {"cpu": 2, "memory": 4, "disk": 30},
     "mount_path": "/root",
-    "auto_sleep": false
+    "auto_sleep": true,
+    "idle_timeout_seconds": 300
   }'
 ```
 
@@ -119,7 +124,7 @@ YodYod 应用中对应配置：
 
 ```dotenv
 AGENT37_TEMPLATE=yodyod-computer@1
-AGENT37_INSTANCE_TYPE=vm
+AGENT37_INSTANCE_TYPE=default
 AGENT37_DESKTOP_PORT=6080
 AGENT37_WORKSPACE_PATH=/root/workspace
 ```
@@ -179,7 +184,7 @@ PY
 
 浏览器和桌面工具应串行调用。应用的“用户接管”按钮还需要在应用层取消或暂停当前 agent 回合；镜像不会自动知道用户何时点击了前端按钮。
 
-Chrome 以 root 运行在隔离 VM 中，启动参数含 `--no-sandbox`；CDP 不对外监听。该镜像只用于专属 VM，不适合把多个不信任用户放进同一个实例。
+Chrome 以 root 运行在隔离实例中，启动参数含 `--no-sandbox`；CDP 不对外监听。每个用户使用独立实例。
 
 ## 本地构建与验证
 
@@ -188,12 +193,12 @@ docker buildx build --platform linux/amd64 --load -t yodyod-computer:test .
 bash scripts/smoke-test.sh yodyod-computer:test
 ```
 
-完整 smoke test 会启动一个临时 privileged 容器和独立 Docker volume，测试完成后清理。Agent37 VM 本身提供所需内核能力；本地用 privileged 容器模拟嵌套 Docker 的运行条件。
+完整 smoke test 会启动一个临时普通容器和空 Docker volume，测试完成后清理。默认不启动 Docker daemon，桌面健康检查也不依赖它。
 
 测试不调用模型、不创建 Agent37 实例、不使用任何业务凭据。它覆盖：
 
 - `/root` 被空 volume 覆盖后，首次引导能补齐配置，且重复引导不覆盖用户配置。
-- noVNC、Chrome CDP、官方 gateway、嵌套 Docker 可用。
+- noVNC、Chrome CDP、官方 gateway 可用，启动不依赖 Docker daemon。
 - Codex app-server JSON-RPC initialize 握手成功。
 - Playwright MCP 能操作可见网页。
 - 桌面 MCP 截图是有效 PNG，鼠标、组合键和中文粘贴可用。

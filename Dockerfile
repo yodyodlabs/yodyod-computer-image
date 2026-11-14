@@ -17,7 +17,7 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM ghcr.io/agent37-platform/ubuntu:2026.10.13c@sha256:e1dcb9e6ec4cb0f4e563dab5cfdf8b3393584a9f2dd328ee8e37fa4956b30bf9
 
 LABEL org.opencontainers.image.title="YodYod Computer" \
-      org.opencontainers.image.description="Agent37 Ubuntu VM with Codex, a shared visible Chrome, browser and desktop MCP tools" \
+      org.opencontainers.image.description="Agent37 Ubuntu desktop with Codex, a shared visible Chrome, browser and desktop MCP tools" \
       org.opencontainers.image.source="https://github.com/yodyodlabs/yodyod-computer-image"
 
 USER root
