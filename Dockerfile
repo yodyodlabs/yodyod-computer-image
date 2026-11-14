@@ -112,4 +112,6 @@ EXPOSE 3737 6080
 WORKDIR /
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
   CMD /opt/yodyod/runtime/healthcheck.sh
-ENTRYPOINT ["tini", "-s", "-g", "--", "/opt/yodyod/runtime/entrypoint.sh"]
+# The supervisor forwards TERM to each service; browser.sh must close Chrome
+# through CDP before its processes are killed so cookies/profile writes flush.
+ENTRYPOINT ["tini", "-s", "--", "/opt/yodyod/runtime/entrypoint.sh"]
