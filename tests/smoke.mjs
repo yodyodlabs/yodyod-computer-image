@@ -149,5 +149,8 @@ try {
   console.log('PASS Browser Use MCP attaches to shared Chrome without a cloud API key');
 } finally {
   for (const client of clients.reverse()) await client.close();
+  // Browser/CDP processes can retain fixture HTTP keep-alives after their MCP
+  // client closes, especially on gVisor. Do not wait for the browser's timeout.
+  fixture.closeAllConnections();
   await new Promise(resolve => fixture.close(resolve));
 }
