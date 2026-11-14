@@ -64,9 +64,6 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=dev --no-audit --no-fund \
     && npm install --global --no-audit --no-fund pnpm@10.22.0 \
     && codex --version
-COPY tools/ ./tools/
-COPY tests/ ./tests/
-
 WORKDIR /opt/yodyod/browser-use
 COPY browser-use/pyproject.toml browser-use/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -76,6 +73,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY --from=gateway-build /gateway/dist/ /opt/yodyod/gateway/dist/
 COPY --from=gateway-build /gateway/node_modules/ /opt/yodyod/gateway/node_modules/
 COPY --from=gateway-build /gateway/package.json /gateway/LICENSE /opt/yodyod/gateway/
+# Tool/test changes should not invalidate the much larger dependency layers.
+COPY tools/ /opt/yodyod/tools/tools/
+COPY tests/ /opt/yodyod/tools/tests/
 COPY config/ /opt/yodyod/config/
 COPY runtime/ /opt/yodyod/runtime/
 COPY scripts/ /opt/yodyod/scripts/
