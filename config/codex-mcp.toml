@@ -1,0 +1,23 @@
+[mcp_servers.yodyod_browser]
+command = "/usr/local/bin/node"
+args = ["/opt/yodyod/tools/node_modules/@playwright/mcp/cli.js", "--cdp-endpoint", "http://127.0.0.1:9222", "--caps", "vision"]
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+
+[mcp_servers.yodyod_browser_use]
+command = "/opt/yodyod/browser-use/.venv/bin/browser-use"
+args = ["--cli-mcp"]
+startup_timeout_sec = 60
+tool_timeout_sec = 120
+
+[mcp_servers.yodyod_browser_use.env]
+BU_NAME = "yodyod"
+BU_CDP_URL = "http://127.0.0.1:9222"
+
+[mcp_servers.yodyod_desktop]
+command = "/usr/local/bin/node"
+args = ["/opt/yodyod/tools/tools/desktop-mcp.mjs"]
+startup_timeout_sec = 30
+
+[mcp_servers.yodyod_desktop.env]
+DISPLAY = ":1"

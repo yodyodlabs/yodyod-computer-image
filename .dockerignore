@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+.env
+.env.*
+artifacts
+.DS_Store

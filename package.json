@@ -1,0 +1,18 @@
+{
+  "name": "yodyod-computer-image",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ubuntu desktop, Codex, browser use and desktop use for Agent37 VMs",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "check": "node --check tools/desktop-mcp.mjs && node --check tests/smoke.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@openai/codex": "0.169.0",
+    "@playwright/mcp": "0.0.85",
+    "zod": "4.6.7"
+  }
+}

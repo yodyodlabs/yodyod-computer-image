@@ -1,0 +1,82 @@
+name: Build, verify and publish computer image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: computer-image-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/yodyodlabs/yodyod-computer-image
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build linux/amd64 image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ env.IMAGE }}:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+      - name: Validate size and run real VM-runtime smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$IMAGE:ci-$GITHUB_SHA"
+          bytes=$(docker image inspect "$image" --format '{{.Size}}')
+          test "$bytes" -lt 15000000000
+          bash scripts/smoke-test.sh "$image"
+      - name: Sign in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested image
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source="$IMAGE:ci-$GITHUB_SHA"
+          immutable="$IMAGE:sha-$GITHUB_SHA"
+          docker tag "$source" "$immutable"
+          docker push "$immutable"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]
+            docker tag "$source" "$IMAGE:$version"
+            docker push "$IMAGE:$version"
+          fi
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            docker tag "$source" "$IMAGE:latest"
+            docker push "$IMAGE:latest"
+          fi
+          digest=$(docker image inspect "$immutable" --format '{{index .RepoDigests 0}}')
+          {
+            echo '### Published and verified'
+            echo "\`$immutable\`"
+            echo
+            echo "\`$digest\`"
+            echo
+            echo 'Desktop, shared Chrome, all three MCP servers, Codex app-server handshake,'
+            echo 'nested Docker, Unicode input and restart persistence passed without model credentials.'
+          } >> "$GITHUB_STEP_SUMMARY"
