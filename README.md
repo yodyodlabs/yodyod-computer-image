@@ -151,7 +151,7 @@ print(page_info())
 PY
 ```
 
-桌面控制工具名：`desktop_screenshot`、`desktop_get_screen_size`、`desktop_list_windows`、`desktop_focus_window`、`desktop_move`、`desktop_click`、`desktop_drag`、`desktop_key`、`desktop_type`、`desktop_scroll`。坐标使用原始截图像素；中文和 Unicode 输入通过 clipboard 粘贴。输入前先激活目标窗口，网页 DOM 焦点不能代替桌面键盘焦点。
+桌面控制工具名：`desktop_screenshot`、`desktop_get_screen_size`、`desktop_list_windows`、`desktop_focus_window`、`desktop_move`、`desktop_click`、`desktop_drag`、`desktop_key`、`desktop_type`、`desktop_scroll`。坐标使用原始截图像素；中文和 Unicode 输入通过 clipboard 粘贴。输入前先激活目标窗口，并点击目标输入框；只设置网页 DOM 焦点不能把键盘焦点从浏览器地址栏移入页面。
 
 浏览器和桌面工具应串行调用。应用的“用户接管”按钮还需要在应用层取消或暂停当前 agent 回合；镜像不会自动知道用户何时点击了前端按钮。
 

@@ -111,17 +111,28 @@ try {
   const chrome = windows.find(window => window.title.includes('YodYod smoke fixture'));
   assert.ok(chrome, `Visible Chrome window not found: ${JSON.stringify(windows)}`);
   await call(desktop, 'desktop_focus_window', { window_id: chrome.id });
-  await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").focus()' });
   await call(desktop, 'desktop_move', { x: 20, y: 20 });
-  await inputDiagnostics(browser, 'Before desktop input');
+  // DOM focus cannot move native keyboard focus out of Chrome's address bar.
+  // Click the input through X11, converting viewport coordinates to screen
+  // coordinates using the actual window geometry (including browser UI).
+  const position = await call(browser, 'browser_evaluate', { function: `() => {
+    const rect = document.querySelector('#unicode').getBoundingClientRect();
+    const border = (window.outerWidth - window.innerWidth) / 2;
+    return { x: Math.round(window.screenX + border + rect.x + rect.width / 2),
+      y: Math.round(window.screenY + window.outerHeight - window.innerHeight - border + rect.y + rect.height / 2) };
+  }` });
+  const coordinates = JSON.parse(contents(position).split('### Result\n')[1].split('\n###')[0]);
+  await call(desktop, 'desktop_click', coordinates);
   await call(desktop, 'desktop_key', { key: 'ctrl+a' });
   await call(desktop, 'desktop_type', { text: '你好 YodYod ✓' });
-  await inputDiagnostics(browser, 'After desktop input');
   let value;
   for (let attempt = 0; attempt < 10; attempt++) {
     value = await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").value' });
     if (contents(value).includes('你好 YodYod ✓')) break;
     await delay(100);
+  }
+  if (!contents(value).includes('你好 YodYod ✓')) {
+    await inputDiagnostics(browser, 'Unicode input failure');
   }
   assert.match(contents(value), /你好 YodYod ✓/);
   console.log('PASS desktop screenshot, mouse, keyboard and Unicode paste');
