@@ -5,7 +5,12 @@ name="yodyod-smoke-${RANDOM}"
 volume="${name}-home"
 cleanup() {
   status=$?
-  if ((status != 0)); then docker logs --tail 200 "$name" >&2 || true; fi
+  if ((status != 0)); then
+    docker logs --tail 200 "$name" >&2 || true
+    mkdir -p artifacts
+    docker exec "$name" scrot --overwrite /tmp/smoke-failure.png || true
+    docker cp "$name:/tmp/smoke-failure.png" artifacts/smoke-failure.png || true
+  fi
   docker rm -f "$name" >/dev/null 2>&1 || true
   docker volume rm "$volume" >/dev/null 2>&1 || true
   return "$status"

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Real protocol/browser/desktop checks. No model credentials or paid calls.
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
 import { createServer } from 'node:http';
 import { createInterface } from 'node:readline';
 import { once } from 'node:events';
@@ -10,6 +11,19 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 const clients = [];
+const exec = promisify(execFile);
+async function inputDiagnostics(browser, label) {
+  const dom = await call(browser, 'browser_evaluate', { function: '() => ({ focused: document.hasFocus(), active: document.activeElement?.outerHTML, events: window.inputEvents })' });
+  console.log(label, contents(dom));
+  for (const [command, args] of [
+    ['xdotool', ['getactivewindow', 'getwindowname']],
+    ['xdotool', ['getwindowfocus', 'getwindowname']],
+    ['xclip', ['-selection', 'clipboard', '-out']],
+  ]) {
+    try { console.log(command, args, (await exec(command, args, { timeout: 3_000 })).stdout); }
+    catch (error) { console.log(command, args, error.message); }
+  }
+}
 async function connect(command, args, env = {}) {
   const client = new Client({ name: 'yodyod-image-smoke', version: '0.1.0' });
   const transport = new StdioClientTransport({ command, args, env: { ...process.env, ...env }, stderr: 'inherit' });
@@ -58,7 +72,10 @@ const fixture = createServer((_req, response) => {
   response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
   response.end('<!doctype html><html><head><title>YodYod smoke fixture</title></head>' +
     '<body><h1>YodYod browser and desktop integration</h1>' +
-    '<label>Unicode test <input id="unicode"></label></body></html>');
+    '<label>Unicode test <input id="unicode"></label><script>window.inputEvents=[];' +
+    '["focusin","focusout","keydown","keyup","paste","input"].forEach(type=>' +
+    'document.addEventListener(type,e=>window.inputEvents.push({type,key:e.key,target:e.target.id})));' +
+    '</script></body></html>');
 });
 await new Promise(resolve => fixture.listen(0, '127.0.0.1', resolve));
 const url = `http://127.0.0.1:${fixture.address().port}`;
@@ -96,8 +113,10 @@ try {
   await call(desktop, 'desktop_focus_window', { window_id: chrome.id });
   await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").focus()' });
   await call(desktop, 'desktop_move', { x: 20, y: 20 });
+  await inputDiagnostics(browser, 'Before desktop input');
   await call(desktop, 'desktop_key', { key: 'ctrl+a' });
   await call(desktop, 'desktop_type', { text: '你好 YodYod ✓' });
+  await inputDiagnostics(browser, 'After desktop input');
   let value;
   for (let attempt = 0; attempt < 10; attempt++) {
     value = await call(browser, 'browser_evaluate', { function: '() => document.querySelector("#unicode").value' });

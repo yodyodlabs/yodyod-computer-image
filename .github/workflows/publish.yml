@@ -80,3 +80,11 @@ jobs:
             echo 'Desktop, shared Chrome, all three MCP servers, Codex app-server handshake,'
             echo 'nested Docker, Unicode input and restart persistence passed without model credentials.'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Retain failed desktop screenshot
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-diagnostics
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 3
