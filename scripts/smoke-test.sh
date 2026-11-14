@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 image="${1:?Usage: scripts/smoke-test.sh IMAGE}"
+# Docker can create a missing WorkingDir; the Agent37 VM launcher cannot. Keep
+# startup outside the empty persistent mount so bootstrap can create its files.
+test "$(docker image inspect "$image" --format '{{.Config.WorkingDir}}')" = /
 name="yodyod-smoke-${RANDOM}"
 volume="${name}-home"
 cleanup() {
@@ -18,7 +21,7 @@ cleanup() {
 trap cleanup EXIT
 docker volume create "$volume" >/dev/null
 docker run --detach --privileged --name "$name" --shm-size=1g \
-  --mount "type=volume,source=$volume,target=/root" "$image" >/dev/null
+  --mount "type=volume,source=$volume,target=/root,volume-nocopy" "$image" >/dev/null
 
 wait_ready() {
   for ((attempt=0; attempt<120; attempt++)); do

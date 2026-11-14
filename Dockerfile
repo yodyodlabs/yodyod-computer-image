@@ -85,7 +85,10 @@ RUN chmod 0755 /opt/yodyod/runtime/*.sh /opt/yodyod/scripts/*.sh \
     && python3 -m compileall -q /opt/yodyod/runtime
 
 EXPOSE 3737 6080
-WORKDIR /root/workspace
+# Agent37 mounts an initially empty disk over /root. Its VM launcher changes to
+# this directory before exec, so a masked /root/workspace prevents even tini/sh
+# from starting. Bootstrap creates the workspace only after entrypoint starts.
+WORKDIR /
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
   CMD /opt/yodyod/runtime/healthcheck.sh
 ENTRYPOINT ["tini", "-g", "--", "/opt/yodyod/runtime/entrypoint.sh"]

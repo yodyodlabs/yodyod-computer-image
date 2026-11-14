@@ -71,6 +71,30 @@ python3 scripts/register-template.py \
 
 Agent37 不保存注册时的 registry 登录凭据；下次导入新的私有镜像版本，需要再次提供。推送同一个 GHCR tag 不会自动更新 Agent37 模板。
 
+### 直接在 Agent37 构建
+
+也可上传本目录的构建上下文，由 Agent37 构建并发布同名模板，不需要 GHCR 读取凭据。GHCR 发布仍由上述 Actions 独立完成。
+
+```bash
+COPYFILE_DISABLE=1 npx agent37 templates build . \
+  --name yodyod-computer --default-port 3737
+```
+
+`COPYFILE_DISABLE=1` 避免 macOS 打包时附带 `._*` AppleDouble 文件；这些元数据也已加入忽略规则。上传前检查 `.dockerignore`，不要把密钥或登录配置放进构建上下文。重复构建会增加模板 revision，已有实例需要显式更新才使用新镜像。
+
+### 真实 VM 验证
+
+Actions 中的 smoke test 在带权限的 Docker 容器中运行，不能代替 Agent37 VM 验证。模板注册成功或控制台显示 `running` 后，还需检查实例启动日志中的 `health.running`、实际执行 `/opt/yodyod/runtime/healthcheck.sh`，并确认桌面端口可访问。可通过 Agent37 exec 运行以下测试，不需要模型密钥或付费模型调用：
+
+```bash
+/opt/yodyod/runtime/healthcheck.sh
+node /opt/yodyod/tools/tests/smoke.mjs
+```
+
+镜像必须从 `WORKDIR /` 启动。Agent37 挂载空数据盘后，镜像中的 `/root/workspace` 会被遮住；若把它设置为 `WORKDIR`，VM launcher 在执行入口前切换目录就会失败，日志却显示 `fork/exec /usr/bin/tini: no such file or directory`，后续 exec 同样报找不到 `sh`。入口脚本必须先能启动，再创建工作目录。CI 检查镜像 `WorkingDir=/`，并使用 `volume-nocopy` 的空 home 测试，避免 Docker 自动填充 volume 掩盖这类错误。
+
+系统镜像修复后，使用 `POST /v1/instances/{id}/update` 更新原实例，保留 `/root` 数据盘；持久目录以外的系统改动会重置。不要删除实例来代替更新。
+
 ## 创建实例和接入 YodYod
 
 注册后可创建测试实例，例如：
