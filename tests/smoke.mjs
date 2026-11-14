@@ -69,7 +69,11 @@ try {
     '--cdp-endpoint', 'http://127.0.0.1:9222', '--caps', 'vision',
   ]);
   const navigation = await call(browser, 'browser_navigate', { url });
-  assert.match(contents(navigation), /YodYod browser and desktop integration/);
+  assert.match(contents(navigation), /YodYod smoke fixture/);
+  // Recent Playwright MCP versions return a snapshot file reference, so verify
+  // the actual DOM rather than depending on the navigation response format.
+  const body = await call(browser, 'browser_evaluate', { function: '() => document.body.innerText' });
+  assert.match(contents(body), /YodYod browser and desktop integration/);
   if (process.argv.includes('--after-restart')) {
     const cookie = await call(browser, 'browser_evaluate', { function: '() => document.cookie' });
     assert.match(contents(cookie), /yodyod_smoke=1/);
