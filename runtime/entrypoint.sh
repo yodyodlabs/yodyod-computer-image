@@ -27,8 +27,14 @@ fi
 unset key
 
 pids=()
+browser_pid=""
 cleanup() {
   trap - TERM INT
+  # Keep the X server alive while Chrome flushes its persistent profile.
+  if [[ -n "$browser_pid" ]]; then
+    kill "$browser_pid" 2>/dev/null || true
+    wait "$browser_pid" 2>/dev/null || true
+  fi
   if ((${#pids[@]})); then
     kill "${pids[@]}" 2>/dev/null || true
     wait "${pids[@]}" 2>/dev/null || true
@@ -41,7 +47,8 @@ trap 'cleanup; exit 130' INT
 /opt/yodyod/runtime/desktop.sh &
 pids+=("$!")
 /opt/yodyod/runtime/browser.sh &
-pids+=("$!")
+browser_pid=$!
+pids+=("$browser_pid")
 node /opt/yodyod/gateway/dist/server/server/index.js &
 pids+=("$!")
 
