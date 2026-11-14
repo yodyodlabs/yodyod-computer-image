@@ -19,6 +19,18 @@ def bootstrap(home: Path, config_dir: Path) -> None:
     # Include nested env tables with their parent server block.
     blocks = re.split(r"(?=^\[mcp_servers\.[a-z_]+\]\s*$)", defaults, flags=re.M)
     additions = []
+    # Agent37's outer instance is the sandbox, as in its official Codex image.
+    # gVisor cannot nest Codex's bubblewrap/user-namespace sandbox. Seed defaults
+    # only; explicit user policies are preserved.
+    root_defaults = {
+        "approval_policy": "never",
+        "sandbox_mode": "danger-full-access",
+    }
+    prefix = "".join(
+        f'{key} = "{value}"\n'
+        for key, value in root_defaults.items()
+        if key not in parsed
+    )
     servers = parsed.get("mcp_servers", {})
     for block in blocks:
         if not block.strip():
@@ -26,8 +38,8 @@ def bootstrap(home: Path, config_dir: Path) -> None:
         name = re.match(r"\[mcp_servers\.([a-z_]+)\]", block).group(1)
         if name not in servers:
             additions.append(block.rstrip())
-    if additions:
-        content = existing.rstrip() + "\n\n" + "\n\n".join(additions) + "\n"
+    if additions or prefix:
+        content = prefix + existing.rstrip() + "\n\n" + "\n\n".join(additions) + "\n"
         tomllib.loads(content)  # Validate before touching the user's file.
         temporary = config.with_suffix(".toml.tmp")
         temporary.write_text(content.lstrip())

@@ -31,18 +31,22 @@ class BootstrapTests(unittest.TestCase):
         original = path.read_bytes()
         self.assertEqual(len(tomllib.loads(original.decode())["mcp_servers"]), 3)
         self.assertTrue((self.home / "workspace").is_dir())
+        self.assertEqual(tomllib.loads(original.decode())["sandbox_mode"], "danger-full-access")
+        self.assertEqual(tomllib.loads(original.decode())["approval_policy"], "never")
         self.seed()
         self.assertEqual(path.read_bytes(), original)
 
     def test_preserves_user_settings_and_existing_server(self):
         folder = self.home / ".codex"
         folder.mkdir()
-        original = 'model = "user-model"\n[mcp_servers.yodyod_browser]\ncommand = "custom-browser"\n'
+        original = 'model = "user-model"\nsandbox_mode = "read-only"\napproval_policy = "on-request"\n[mcp_servers.yodyod_browser]\ncommand = "custom-browser"\n'
         (folder / "config.toml").write_text(original)
         (self.home / "AGENTS.md").write_text("My own instructions\n")
         self.seed()
         parsed = tomllib.loads((folder / "config.toml").read_text())
         self.assertEqual(parsed["model"], "user-model")
+        self.assertEqual(parsed["sandbox_mode"], "read-only")
+        self.assertEqual(parsed["approval_policy"], "on-request")
         self.assertEqual(parsed["mcp_servers"]["yodyod_browser"]["command"], "custom-browser")
         self.assertEqual((self.home / "AGENTS.md").read_text(), "My own instructions\n")
 

@@ -10,6 +10,19 @@ mkdir -p "$profile" "$HOME/Desktop" "$HOME/.agent37"
 if [[ ! -f "$profile/xfce4-panel.xml" ]]; then
   cp /etc/xdg/xfce4/panel/default.xml "$profile/xfce4-panel.xml"
 fi
+# gVisor has no GPU. Avoid probing GL/compositing in the window manager.
+if [[ ! -f "$profile/xfce4-session.xml" ]]; then
+  python3 - "$profile/xfce4-session.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+tree = ET.parse('/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-session.xml')
+for prop in tree.iter('property'):
+    if prop.get('name') == 'Client0_Command' and any(v.get('value') == 'xfwm4' for v in prop):
+        for value in ('--compositor=off', '--vblank=off'):
+            ET.SubElement(prop, 'value', type='string', value=value)
+tree.write(sys.argv[1], encoding='UTF-8', xml_declaration=True)
+PY
+fi
 if [[ ! -f "$HOME/.agent37/desktop-icons-seeded" ]]; then
   for app in firefox xfce4-terminal; do
     if [[ -f "/usr/share/applications/$app.desktop" ]]; then
@@ -35,7 +48,7 @@ respawn() {
   shift
   trap 'kill "$child" 2>/dev/null || true; wait "$child" 2>/dev/null || true; exit 0' TERM INT
   while true; do
-    "$@" >"$log" 2>&1 &
+    "$@" >>"$log" 2>&1 &
     child=$!
     wait "$child" || true
     sleep 2 &

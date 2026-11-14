@@ -37,13 +37,8 @@ cleanup() {
 trap 'cleanup; exit 143' TERM
 trap 'cleanup; exit 130' INT
 
-# Standard/gVisor instances cannot run dockerd. Keep desktop startup independent
-# from it; a VM may explicitly opt into the vendor desktop + Docker runtime.
-if [[ "${YODYOD_ENABLE_DOCKER:-0}" == 1 ]]; then
-  /usr/local/bin/agent37-entrypoint.sh &
-else
-  /opt/yodyod/runtime/desktop.sh &
-fi
+# Standard/gVisor instances cannot run dockerd.
+/opt/yodyod/runtime/desktop.sh &
 pids+=("$!")
 /opt/yodyod/runtime/browser.sh &
 pids+=("$!")

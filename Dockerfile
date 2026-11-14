@@ -14,7 +14,9 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --omit=optional --no-audit --no-fund && npm run build \
     && npm prune --omit=dev --omit=optional --no-audit --no-fund
 
-FROM ghcr.io/agent37-platform/ubuntu:2026.10.13c@sha256:e1dcb9e6ec4cb0f4e563dab5cfdf8b3393584a9f2dd328ee8e37fa4956b30bf9
+# Ubuntu 26.04's glycin icon loaders require nested bubblewrap namespaces,
+# unavailable on Standard/gVisor. Use the maintained 24.04 LTS desktop stack.
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5
 
 LABEL org.opencontainers.image.title="YodYod Computer" \
       org.opencontainers.image.description="Agent37 Ubuntu desktop with Codex, a shared visible Chrome, browser and desktop MCP tools" \
@@ -22,6 +24,25 @@ LABEL org.opencontainers.image.title="YodYod Computer" \
 
 USER root
 ARG DEBIAN_FRONTEND=noninteractive
+ENV HOME=/root
+# Match Agent37's desktop components without its VM-only Docker daemon.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates curl git iproute2 less sudo tini \
+      xfce4-session xfwm4 xfce4-panel xfdesktop4 xfce4-settings xfce4-terminal \
+      thunar xfce4-appfinder exo-utils dbus-x11 \
+      tigervnc-standalone-server novnc websockify x11-utils fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html \
+    && printf '{"autoconnect":true,"resize":"remote"}\n' > /usr/share/novnc/defaults.json
+# Ubuntu's Firefox package is a Snap stub; use Mozilla's signed .deb repository.
+RUN install -d -m 0755 /etc/apt/keyrings \
+    && curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
+       -o /etc/apt/keyrings/packages.mozilla.org.asc \
+    && echo 'deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main' \
+       > /etc/apt/sources.list.d/mozilla.list \
+    && printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' > /etc/apt/preferences.d/mozilla \
+    && apt-get update && apt-get install -y --no-install-recommends firefox \
+    && rm -rf /var/lib/apt/lists/*
 # Keep baked software outside /root: Agent37 mounts the durable home over it.
 COPY --from=node-runtime /usr/local/ /usr/local/
 COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /uvx /usr/local/bin/
@@ -91,4 +112,4 @@ EXPOSE 3737 6080
 WORKDIR /
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=3 \
   CMD /opt/yodyod/runtime/healthcheck.sh
-ENTRYPOINT ["tini", "-g", "--", "/opt/yodyod/runtime/entrypoint.sh"]
+ENTRYPOINT ["tini", "-s", "-g", "--", "/opt/yodyod/runtime/entrypoint.sh"]

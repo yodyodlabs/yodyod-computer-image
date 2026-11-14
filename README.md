@@ -1,6 +1,6 @@
 # YodYod Computer Image
 
-为 Agent37 Standard 构建的 Ubuntu 远程电脑镜像：保留官方 XFCE、Firefox 和 noVNC，增加 Codex、共享的可见 Chrome、Browser Use 和桌面操作工具。
+为 Agent37 Standard 构建的 Ubuntu 远程电脑镜像：安装 XFCE、Firefox 和 noVNC，增加 Codex、共享的可见 Chrome、Browser Use 和桌面操作工具。
 
 - GitHub：`yodyodlabs/yodyod-computer-image`
 - GHCR：`ghcr.io/yodyodlabs/yodyod-computer-image`
@@ -11,7 +11,7 @@
 
 | 部分 | 内容 |
 | --- | --- |
-| 基础系统 | 官方 `agent37-platform/ubuntu:2026.10.13c`，固定 digest；Ubuntu 26.04 |
+| 基础系统 | 官方 `ubuntu:24.04` LTS，固定 digest；桌面组件参考 Agent37 Ubuntu 配方 |
 | 桌面 | XFCE、TigerVNC、noVNC、Firefox；额外安装中文字体；独立于 Docker daemon 启动 |
 | 浏览器 | Google Chrome stable，运行在桌面 `DISPLAY=:1` |
 | 代码环境 | Node.js 24.22.3、npm、pnpm 10.22.0、Python 3.12.12、uv 0.13.5、git、编译工具 |
@@ -84,6 +84,8 @@ COPYFILE_DISABLE=1 npx agent37 templates build . \
 
 ### 真实实例验证
 
+Standard 不支持嵌套 user namespaces。Ubuntu 26.04 的 glycin 图标加载器依赖 bubblewrap，会导致 XFCE 因图标解码失败而退出；因此镜像使用 Ubuntu 24.04 LTS。桌面关闭合成效果，健康检查还会等待窗口管理器。Codex 按官方 Agent37 Codex 镜像的方式以实例为沙箱，在首次引导时补齐 `approval_policy="never"`、`sandbox_mode="danger-full-access"`；保留用户显式配置。
+
 Actions 中的 smoke test 在普通 Docker 容器中运行，不能代替 Agent37 Standard/gVisor 的真实实例验证。模板注册成功或控制台显示 `running` 后，还需检查实例启动日志中的 `health.running`、实际执行 `/opt/yodyod/runtime/healthcheck.sh`，并确认桌面端口可访问。可通过 Agent37 exec 运行以下测试，不需要模型密钥或付费模型调用：
 
 ```bash
@@ -97,7 +99,7 @@ node /opt/yodyod/tools/tests/smoke.mjs
 
 ## 创建实例和接入 YodYod
 
-Standard 在 API 中写作 `type: "default"`，仅支持 `us`，适用于桌面、Codex、浏览器和普通代码任务。VM 的计算费率为 Standard 的 2.5 倍；需要嵌套 Docker/Kubernetes 时才选 `vm`，并设置实例环境变量 `YODYOD_ENABLE_DOCKER=1`，启用官方 Docker 运行时。Standard 不支持 Docker daemon。
+Standard 在 API 中写作 `type: "default"`，仅支持 `us`，适用于桌面、Codex、浏览器和普通代码任务。VM 的计算费率为 Standard 的 2.5 倍；当前镜像不安装或启动 Docker daemon。需要嵌套 Docker/Kubernetes 时，应另建 VM 模板。
 
 实例启用自动休眠，空闲阈值为 300 秒。Agent37 按实例 URL 的流量判定空闲，持续传输数据的桌面或终端连接可能推迟休眠。已有实例不能原地修改类型；从 VM 转为 Standard 需要新建实例并迁移持久数据，随后停止旧 VM。
 
@@ -118,7 +120,7 @@ curl -X POST https://api.agent37.com/v1/instances \
   }'
 ```
 
-将 `@1` 替换成注册返回的 revision。上面会创建计费资源，请在真正需要实例时运行。2 CPU / 4 GB 可用于轻量任务，多个大型页面或编译任务建议 4 CPU / 8 GB。持久磁盘还要容纳项目依赖、浏览器配置和嵌套 Docker 数据。
+将 `@1` 替换成注册返回的 revision。上面会创建计费资源，请在真正需要实例时运行。2 CPU / 4 GB 可用于轻量任务，多个大型页面或编译任务建议 4 CPU / 8 GB。持久磁盘还要容纳项目依赖和浏览器配置。
 
 YodYod 应用中对应配置：
 
