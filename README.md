@@ -13,6 +13,7 @@
 | --- | --- |
 | 基础系统 | 官方 `ubuntu:24.04` LTS，固定 digest；桌面组件参考 Agent37 Ubuntu 配方 |
 | 桌面 | XFCE、TigerVNC、noVNC、Firefox；额外安装中文字体；独立于 Docker daemon 启动 |
+| 终端 | ttyd，在端口 7681 提供真实 PTY 的 WebSocket 数据流；由 Agent37 签名 URL 鉴权 |
 | 浏览器 | Google Chrome stable，运行在桌面 `DISPLAY=:1` |
 | 代码环境 | Node.js 24.22.3、npm、pnpm 10.22.0、Python 3.12.12、uv 0.13.5、git、编译工具 |
 | 常用工具 | jq、ripgrep、rsync、zip/unzip、curl、wget、ffmpeg、SSH client、vim、nano |

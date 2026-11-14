@@ -94,6 +94,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY --from=gateway-build /gateway/dist/ /opt/yodyod/gateway/dist/
 COPY --from=gateway-build /gateway/node_modules/ /opt/yodyod/gateway/node_modules/
 COPY --from=gateway-build /gateway/package.json /gateway/LICENSE /opt/yodyod/gateway/
+RUN apt-get update && apt-get install -y --no-install-recommends ttyd \
+    && rm -rf /var/lib/apt/lists/*
 # Tool/test changes should not invalidate the much larger dependency layers.
 COPY tools/ /opt/yodyod/tools/tools/
 COPY tests/ /opt/yodyod/tools/tests/
@@ -105,7 +107,7 @@ RUN chmod 0755 /opt/yodyod/runtime/*.sh /opt/yodyod/scripts/*.sh \
     && node --check /opt/yodyod/tools/tools/desktop-mcp.mjs \
     && python3 -m compileall -q /opt/yodyod/runtime
 
-EXPOSE 3737 6080
+EXPOSE 3737 6080 7681
 # Agent37 mounts an initially empty disk over /root. Its VM launcher changes to
 # this directory before exec, so a masked /root/workspace prevents even tini/sh
 # from starting. Bootstrap creates the workspace only after entrypoint starts.

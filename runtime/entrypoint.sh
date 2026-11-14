@@ -51,8 +51,10 @@ browser_pid=$!
 pids+=("$browser_pid")
 node /opt/yodyod/gateway/dist/server/server/index.js &
 pids+=("$!")
+ttyd --writable --port 7681 --max-clients 8 --cwd "$GATEWAY_WORKSPACE_DIR" bash --login &
+pids+=("$!")
 
-log "Starting desktop :6080, shared Chrome on loopback :9222, Codex gateway :$PORT."
+log "Starting desktop :6080, terminal :7681, shared Chrome on loopback :9222, Codex gateway :$PORT."
 set +e
 wait -n "${pids[@]}"
 status=$?
