@@ -34,15 +34,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html \
     && printf '{"autoconnect":true,"resize":"remote"}\n' > /usr/share/novnc/defaults.json
-# Ubuntu's Firefox package is a Snap stub; use Mozilla's signed .deb repository.
-RUN install -d -m 0755 /etc/apt/keyrings \
-    && curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
-       -o /etc/apt/keyrings/packages.mozilla.org.asc \
-    && echo 'deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main' \
-       > /etc/apt/sources.list.d/mozilla.list \
-    && printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' > /etc/apt/preferences.d/mozilla \
-    && apt-get update && apt-get install -y --no-install-recommends firefox \
-    && rm -rf /var/lib/apt/lists/*
 # Keep baked software outside /root: Agent37 mounts the durable home over it.
 COPY --from=node-runtime /usr/local/ /usr/local/
 COPY --from=ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff /uv /uvx /usr/local/bin/

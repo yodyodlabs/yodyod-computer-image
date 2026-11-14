@@ -57,6 +57,21 @@ class BootstrapTests(unittest.TestCase):
         self.assertIn('TerminalEmulator=custom-terminal', helpers.read_text())
         self.assertNotIn('WebBrowser=firefox', helpers.read_text())
 
+    def test_removes_legacy_firefox_shortcut_and_preserves_user_files(self):
+        desktop = self.home / "Desktop"
+        desktop.mkdir()
+        (desktop / "firefox.desktop").write_text("[Desktop Entry]\nExec=firefox\n")
+        (desktop / "notes.txt").write_text("User notes\n")
+        profile = self.home / ".mozilla/firefox"
+        profile.mkdir(parents=True)
+        (profile / "profiles.ini").write_text("Existing profile\n")
+        self.seed()
+        self.assertFalse((desktop / "firefox.desktop").exists())
+        self.assertTrue((desktop / "yodyod-chrome.desktop").is_file())
+        self.assertEqual((desktop / "notes.txt").read_text(), "User notes\n")
+        self.assertEqual((profile / "profiles.ini").read_text(), "Existing profile\n")
+        self.seed()
+
     def test_invalid_config_is_left_intact(self):
         folder = self.home / ".codex"
         folder.mkdir()

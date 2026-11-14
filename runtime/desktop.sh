@@ -24,7 +24,7 @@ tree.write(sys.argv[1], encoding='UTF-8', xml_declaration=True)
 PY
 fi
 if [[ ! -f "$HOME/.agent37/desktop-icons-seeded" ]]; then
-  for app in firefox xfce4-terminal; do
+  for app in xfce4-terminal; do
     if [[ -f "/usr/share/applications/$app.desktop" ]]; then
       install -m 0755 "/usr/share/applications/$app.desktop" "$HOME/Desktop/"
     fi

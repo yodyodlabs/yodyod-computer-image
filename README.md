@@ -1,6 +1,6 @@
 # YodYod Computer Image
 
-为 Agent37 Standard 构建的 Ubuntu 远程电脑镜像：安装 XFCE、Firefox 和 noVNC，增加 Codex、共享的可见 Chrome、Browser Use 和桌面操作工具。
+为 Agent37 Standard 构建的 Ubuntu 远程电脑镜像：安装 XFCE 和 noVNC，增加 Codex、共享的可见 Chrome、Browser Use 和桌面操作工具。浏览器统一使用 Chrome，不安装 Firefox。
 
 - GitHub：`yodyodlabs/yodyod-computer-image`
 - GHCR：`ghcr.io/yodyodlabs/yodyod-computer-image`
@@ -12,7 +12,7 @@
 | 部分 | 内容 |
 | --- | --- |
 | 基础系统 | 官方 `ubuntu:24.04` LTS，固定 digest；桌面组件参考 Agent37 Ubuntu 配方 |
-| 桌面 | XFCE、TigerVNC、noVNC、Firefox；额外安装中文字体；独立于 Docker daemon 启动 |
+| 桌面 | XFCE、TigerVNC、noVNC；额外安装中文字体；独立于 Docker daemon 启动 |
 | 终端 | ttyd，在端口 7681 提供真实 PTY 的 WebSocket 数据流；由 Agent37 签名 URL 鉴权 |
 | 浏览器 | Google Chrome stable，运行在桌面 `DISPLAY=:1` |
 | 代码环境 | Node.js 24.22.3、npm、pnpm 10.22.0、Python 3.12.12、uv 0.13.5、git、编译工具 |

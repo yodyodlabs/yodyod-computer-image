@@ -10,6 +10,9 @@ from pathlib import Path
 
 def bootstrap(home: Path, config_dir: Path) -> None:
     (home / "workspace").mkdir(parents=True, exist_ok=True)
+    # Older images seeded this launcher on the persistent desktop. Firefox is
+    # no longer installed; remove its stale shortcut without touching profiles.
+    (home / "Desktop/firefox.desktop").unlink(missing_ok=True)
     # XFCE's panel uses exo's WebBrowser helper, while links use XDG MIME
     # associations. Both must use the root-compatible shared-profile launcher.
     for destination, source in (

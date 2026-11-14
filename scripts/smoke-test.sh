@@ -36,6 +36,7 @@ wait_ready() {
 }
 
 wait_ready
+docker exec "$name" sh -c '! command -v firefox && ! command -v firefox-esr'
 docker exec --workdir /opt/yodyod/tools "$name" npm run check
 docker exec --workdir /opt/yodyod/tools "$name" npm test
 docker exec -e YODYOD_SOURCE_ROOT=/opt/yodyod "$name" \
